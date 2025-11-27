@@ -22,7 +22,7 @@ eps = 1e-8;
 % ---- FRANK-WOLFE ----
 [x_FW, f_FW] = frank_wolfe(Q, q, x0, a, b, l, u, eps);
 
-fprintf("Soluzione FW:\n");
+fprintf("x:FW:\n");
 disp(x_FW);
 
 fprintf("a'*x_FW = %.4f (>= 2)\n", a'*x_FW);
