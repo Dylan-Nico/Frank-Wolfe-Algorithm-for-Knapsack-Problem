@@ -52,3 +52,4 @@ function s = solveLP(g, a, b, l, u)
 
     % should never reach here: if box is insufficient, problem is infeasible
 end
+
