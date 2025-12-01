@@ -1,26 +1,48 @@
-function [x, fval] = frank_wolfe(Q,q,x0,a,b,l,u,eps) % invariant Sum_i(a_i*x_i)>=b
+function [x, fval, f_star] = frank_wolfe(Q,q,x0,a,b,l,u,eps) % invariant Sum_i(a_i*x_i)>=b
 
 plot_tomo = false;
 x = x0;
 n = length(x0);
+max_iter = 100000;
 iterates = x;
 gaps = [];
+primal_errors = [];
+Results = table([], [], [], [], [], [], 'VariableNames', {'Iter','gap','alpha','a * x','StepNorm', 'PrimalError'});
 
-Results = table([], [], [], [], [], 'VariableNames', {'Iter','gap','alpha','a * x','StepNorm'});
 
 % check if starting point is feasible
 if ~check_feasible(x, a, b, l, u)
-    fprintf("Error: starting point no feasible, choose one that respect the constraints\n");
-    return;
+    fprintf("Error: starting point no feasible, force it to be feasible\n");
+    
+    % put in the center of the box
+    x = (l + u) / 2;
+
+    % if second constraint not verified
+    if a' * x < b
+        % Compute difference and move
+        t = (b - a' * x) / (a' * a);
+        x = x + t * a;
+
+        % 3) re-put in the box if necessary
+        x = min(max(x, l), u);
+    end
+    
 end
 
+% Compute true minimum with oracle (for primal error)
+[x_star, f_star] = Oracle(Q, q, a, b, l, u);
 
-for k = 0:5000
+
+for k = 0:max_iter
+
+    % gradient
     g = 2*Q*x + q;
 
     s = solveLP(g,a,b,l,u);
 
     d = s - x;
+    
+   
     
     gap = -g' * d;
     % save gap for the plot
@@ -48,15 +70,22 @@ for k = 0:5000
 
     x = x + alpha*d;
 
+    % evaluate f at current iteration
+    f_x = x' * Q * x + q' * x;
+    
+    primal_error = abs(f_x - f_star) / max(1, abs(f_x));
+    primal_errors(end+1) = primal_error;
+
     % Valori salvati
     iterNum   = k;
     gap_k     = gap;
     alpha_k   = alpha;
     aTx_k     = a' * x;
     stepnorm  = norm(alpha*d);
+    pe_k      = primal_error;
 
     % Aggiungi alla tabella
-    newRow = {iterNum, gap_k, alpha_k, aTx_k, stepnorm};
+    newRow = {iterNum, gap_k, alpha_k, aTx_k, stepnorm, pe_k};
     Results = [Results; newRow];
 
     % === WARNING VICINO AL BOUND ===
@@ -81,6 +110,6 @@ disp(Results);
 check_feasible(x, a, b, l, u);
 
 % plot gap
-plot_gap(gaps);
+plot_gap(gaps, primal_errors);
 
 end
