@@ -1,115 +1,36 @@
-function [x, fval, f_star] = frank_wolfe(Q,q,x0,a,b,l,u,eps) % invariant Sum_i(a_i*x_i)>=b
+function plot_gap2(gaps, primal_errors)
 
-plot_tomo = false;
-x = x0;
-n = length(x0);
-max_iter = 100000;
-iterates = x;
-gaps = [];
-primal_errors = [];
-Results = table([], [], [], [], [], [], 'VariableNames', {'Iter','gap','alpha','a * x','StepNorm', 'PrimalError'});
+    k = min(length(gaps), length(primal_errors));
+    gaps = gaps(1:k);
+    primal_errors = primal_errors(1:k);
+    % --- Messa in sicurezza ---
+    gaps = gaps(:) + 1e-16;
+    primal_errors = abs(primal_errors(:)) + 1e-16;
+    k = length(gaps);
 
+    % --- Soglie per gli zoom ---
+    thresh_mid  = 1e-2;   % zoom centrale
+    thresh_tail = 1e-3;   % zoom finale
 
-% check if starting point is feasible
-if ~check_feasible(x, a, b, l, u)
-    fprintf("Error: starting point no feasible, force it to be feasible\n");
+    % Trovo gli indici da cui tagliare
+    idx_mid  = find(primal_errors < thresh_mid, 1);
+    if isempty(idx_mid), idx_mid = 1; end
+
+    idx_tail = find(primal_errors < thresh_tail, 1);
+    if isempty(idx_tail), idx_tail = floor(k*0.7); end
+
+    % --- Figura ---
+    figure;
+    ylim([1e-4 1]);    
     
-    % put in the center of the box
-    x = (l + u) / 2;
-
-    % if second constraint not verified
-    if a' * x < b
-        % Compute difference and move
-        t = (b - a' * x) / (a' * a);
-        x = x + t * a;
-
-        % 3) re-put in the box if necessary
-        x = min(max(x, l), u);
-    end
+    % === (1) OVERVIEW COMPLETA ===
+    subplot(3,1,1);
+    semilogy(1:k, gaps, 'LineWidth', 1.5); hold on;
+    semilogy(1:k, primal_errors, 'LineWidth', 1.5);
+    grid on; title('Overview (All Iterations)');
+    ylabel('Error');
+    legend('Duality Gap', 'Primal Error');
+    ax = gca;
+    ax.Position = [0.12 0.15 0.8 0.75]; 
     
-end
-
-% Compute true minimum with oracle (for primal error)
-[x_star, f_star] = Oracle(Q, q, a, b, l, u);
-
-
-for k = 0:max_iter
-
-    % gradient
-    g = 2*Q*x + q;
-
-    s = solveLP(g,a,b,l,u);
-
-    d = s - x;
-    
-   
-    
-    gap = -g' * d;
-    % save gap for the plot
-    gaps(end+1) = gap;
-
-    if(gap <= eps)
-        fprintf('Converged (gap <= eps)\n');
-        break;
-    end
-
-    % ---- Line search esatta per quadratiche usando la tomografia implicitamente ----
-    % α = argmin f(x + α d)
-    num = g' * d;
-    denom = 2*d' * Q * d;
-
-    if denom > 0
-        alpha = min(1, max(0, -num / denom));
-    else
-        alpha = 1;
-    end
-
-    if plot_tomo && mod(k,10)==0
-        plot_tomography(Q, q, x, d, alpha);
-    end
-
-    x = x + alpha*d;
-
-    % evaluate f at current iteration
-    f_x = x' * Q * x + q' * x;
-    
-    primal_error = abs(f_x - f_star) / max(1, abs(f_x));
-    primal_errors(end+1) = primal_error;
-
-    % Valori salvati
-    iterNum   = k;
-    gap_k     = gap;
-    alpha_k   = alpha;
-    aTx_k     = a' * x;
-    stepnorm  = norm(alpha*d);
-    pe_k      = primal_error;
-
-    % Aggiungi alla tabella
-    newRow = {iterNum, gap_k, alpha_k, aTx_k, stepnorm, pe_k};
-    Results = [Results; newRow];
-
-    % === WARNING VICINO AL BOUND ===
-    tolBound = 1e-8;
-    warning_bound(tolBound,x,l,u) ;
-
-    iterates(:, end+1) = x;
-
-end
-
-fval = x' * Q * x + q' * x;
-
-% ---- Plot 2D delle iterazioni se n = 2 ----
-if n == 2
-    FW_plot2D(Q, q, a, b, l, u, iterates);
-end
-
-% stampo la tabella
-disp(Results);
-
-% check x ammissible
-check_feasible(x, a, b, l, u);
-
-% plot gap
-plot_gap2(gaps, primal_errors);
-
 end
