@@ -3,7 +3,7 @@ function [x, fval, f_star] = frank_wolfe(Q,q,x0,a,b,l,u,eps) % invariant Sum_i(a
 plot_tomo = false;
 x = x0;
 n = length(x0);
-max_iter = 100000;
+max_iter = n * 2000;
 iterates = x;
 gaps = [];
 primal_errors = [];
@@ -111,5 +111,8 @@ check_feasible(x, a, b, l, u);
 
 % plot gap
 plot_gap(gaps, primal_errors);
+
+disp(n)
+disp(k)
 
 end
