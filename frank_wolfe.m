@@ -1,4 +1,4 @@
-function [x, fval, f_star] = frank_wolfe(Q,q,x0,a,b,l,u,eps) % invariant Sum_i(a_i*x_i)>=b
+function [x, fval, f_star, gaps, primal_errors] = frank_wolfe(Q,q,x0,a,b,l,u,eps) % invariant Sum_i(a_i*x_i)>=b
 
 % Frank Wolfe algorithm
 %
@@ -16,7 +16,7 @@ function [x, fval, f_star] = frank_wolfe(Q,q,x0,a,b,l,u,eps) % invariant Sum_i(a
 % Initialize variables
 x = x0;
 n = length(x0);
-max_iter = 500000;
+max_iter = 100000;
 iterates = x;
 gap = Inf;
 gaps = [];
@@ -47,7 +47,7 @@ end
 % Compute true minimum with oracle (for primal error)
 [x_star, f_star] = Oracle(Q, q, a, b, l, u);
 
-k = 0;
+k = 1;
 while(k<max_iter && gap>eps)
 
     % gradient
@@ -114,7 +114,9 @@ if n == 2
 end
 
 % print table
+format short e
 disp(Results);
+format short
 
 % check x ammissible
 if(check_feasible(x, a, b, l, u))
