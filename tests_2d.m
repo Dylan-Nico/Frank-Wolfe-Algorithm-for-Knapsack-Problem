@@ -55,7 +55,7 @@ fprintf("f(x)  = %.6f\n\n", f_FW);
 % dovremmo avere x1 bassa e x2 alta
 disp("======== TEST 3 : Q mal condizionata ========");
 
-Q = [20 0; 0 1];
+Q = [10 0; 0 1];
 q = [-4; -2];
 
 a = [1; 1];
@@ -97,6 +97,33 @@ disp("x_FW = ");
 disp(x_FW);
 fprintf("a'*x = %.4f\n", a'*x_FW);
 fprintf("f(x)  = %.6f\n\n", f_FW);
+
+
+
+%% TEST 5 – Minimo interno al box (vincolo irrilevante)
+disp("======== TEST 5 : Minimo interno al box (vincolo irrilevante) ========");
+
+Q = [2 0; 0 1];
+q = [-4; -2];
+
+a = [1; 1];
+b = -10;   % vincolo NON attivo mai
+
+l = [0; 0];
+u = [3; 3];
+
+x0 = [1; 1];
+
+[x_FW, f_FW] = frank_wolfe(Q, q, x0, a, b, l, u, eps);
+
+disp("Risultato TEST 5");
+disp("x_FW = ");
+disp(x_FW);
+fprintf("a'*x = %.4f (vincolo totalmente irrilevante)\n", a'*x_FW);
+fprintf("f(x)  = %.6f\n\n", f_FW);
+
+
+
 
 %% TEST 6 – Vincolo molto stringente (quasi tutto fuori)
 % x1 e x2 al bordo del box

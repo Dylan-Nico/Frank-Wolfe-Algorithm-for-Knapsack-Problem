@@ -1,7 +1,15 @@
 function s = solveLP(g, a, b, l, u)
+% solve knapsack problem
+% Input: gradient g
+%        a, b for linear constraint
+%        l, u extremes of the box
+% Output: s_k = argmin g^T*s, with s in the Domain
+
     n = length(g);
 
-    % First: unconstrained box minimizer
+    % Unconstrained box minimizer
+    % easy: if my line is increasing the minumum is l, if it's decreasing
+    % the min is u
     y = zeros(n,1);
     for i = 1:n
         if g(i) > 0
@@ -18,12 +26,12 @@ function s = solveLP(g, a, b, l, u)
     end
 
     % Otherwise we must increase value a^T y until reaching b
-    % We do so by moving along direction that increases a_i / g_i efficiency.
+    % We move along direction that increases a_i / g_i in an efficient way
     
-    % Compute "efficiency": how much a grows per increase of objective
+    % Compute "efficient": how much a grows per increase of objective
     ratio = a ./ abs(g + 1e-12);
 
-    % Sort variables by ratio (descending)
+    % Sort variables by ratio 
     [~, idx] = sort(ratio, 'descend');
 
     s = y;
@@ -50,6 +58,6 @@ function s = solveLP(g, a, b, l, u)
         end
     end
 
-    % should never reach here: if box is insufficient, problem is infeasible
+    % never reach here: if box is insufficient, problem is infeasible
 end
 

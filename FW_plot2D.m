@@ -1,14 +1,14 @@
 function FW_plot2D(Q,q,a,b,l,u,iterates)
-    % iterates: matrice 2×K con gli x_k salvati
+    % Plots level sets and constraint in 2D problems
 
     figure; hold on; grid on;
     title('Frank-Wolfe iterations (2D)');
     xlabel('x_1'); ylabel('x_2');
 
-    % ---- Plot dominio (box + vincolo) ----
+    % ---- Plot domain ----
     plotBox2D_with_constraint(l, u, a, b);
 
-    % ---- Griglia per curve di livello ----
+    % ---- Level sets ----
     [X, Y] = meshgrid(linspace(l(1),u(1),200), linspace(l(2),u(2),200));
     F = zeros(size(X));
 
@@ -19,10 +19,9 @@ function FW_plot2D(Q,q,a,b,l,u,iterates)
         end
     end
 
-    % ---- Curve di livello ----
     contour(X, Y, F, 25, 'k'); 
 
-    % ---- Iterazioni ----
+    % ---- Iterations ----
     plot(iterates(1,:), iterates(2,:), 'o--', 'Color',[0 0 0], ...
         'MarkerFaceColor','k', 'LineWidth',1.4);
 
