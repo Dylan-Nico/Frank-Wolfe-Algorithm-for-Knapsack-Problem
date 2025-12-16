@@ -1,4 +1,4 @@
-function generate_test_case(n, type)
+function generate_test_case(n, type, variant, seed)
 % Create and RUN a test instance for Frank-Wolfe.
 %
 % Usage:
@@ -12,8 +12,13 @@ function generate_test_case(n, type)
 %
 %   generate_test_case(n, "conditioning_vs_iterations")
 
+
+if nargin >= 4
+    rng(seed, 'twister');
+end
+
 fprintf("--------------------------------------------------\n");
-fprintf(" Running test (%s), n = %d\n", type, n);
+fprintf(" Running test (%s), n = %d, variant = %s\n", type, n, variant);
 fprintf("--------------------------------------------------\n");
 
 % -------------------------
@@ -54,7 +59,7 @@ if strcmpi(type, "conditioning_vs_iterations")
 
         q = -2*Q*x_star;
 
-        [x_FW, f_FW, f_star, gaps, primal_errors] = frank_wolfe(Q, q, x0, a, b, l, u, eps);
+        [x_FW, f_FW, f_star, gaps, primal_errors] = frank_wolfe(Q, q, x0, a, b, l, u, eps, variant);
 
         iters(i) = length(gaps);
 
@@ -152,7 +157,7 @@ eps = 1e-6;
 % -------------------------
 % Run Frank–Wolfe
 % -------------------------
-[x_FW, f_FW, f_star] = frank_wolfe(Q, q, x0, a, b, l, u, eps);
+[x_FW, f_FW, f_star] = frank_wolfe(Q, q, x0, a, b, l, u, eps, variant);
 
 % -------------------------
 % Print

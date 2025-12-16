@@ -8,14 +8,12 @@ iterates = x;
 gaps = [];
 primal_errors = [];
 Results = table([], [], [], [], [], [], 'VariableNames', {'Iter','gap','alpha','a * x','StepNorm', 'PrimalError'});
-away = false;
+
 
 if isequal(variant, "away")
-    disp("Away STEP ACTIVE")
-    away = true;
+    away = true
     V = x;        % active vertices
     lambda = 1;
-end
 
 % check if starting point is feasible
 if ~check_feasible(x, a, b, l, u)
@@ -47,13 +45,15 @@ for k = 0:max_iter
 
     s = solveLP(g,a,b,l,u);
 
-    d_FW = s - x;
+    d = s - x;
     
    
     
-    gap_FW = -g' * d_FW;
+    gap = -g' * d;
+    % save gap for the plot
+    gaps(end+1) = gap;
 
-    if away && size(V,2) > 1
+    if isequal(variant, "away") && size(V,2) > 1
         [~, idx] = max(V' * g);
         v = V(:, idx);
         d_A = x - v;
@@ -62,7 +62,7 @@ for k = 0:max_iter
         gap_A = -inf;
     end
 
-    if ~away || gap_FW >= gap_A
+    if ~use_away || gap_FW >= gap_A
         d = d_FW;
         gamma_max = 1;
         step_type = "FW";
@@ -73,9 +73,6 @@ for k = 0:max_iter
         step_type = "Away";
         gap = gap_A;
     end
-
-    % save gap for the plot
-    gaps(end+1) = gap;
 
     if(gap <= eps)
         fprintf('Converged (gap <= eps)\n');
@@ -88,9 +85,9 @@ for k = 0:max_iter
     denom = 2*d' * Q * d;
 
     if denom > 0
-        alpha = min(gamma_max, max(0, -num / denom));
+        alpha = min(1, max(0, -num / denom));
     else
-        alpha = gamma_max;
+        alpha = 1;
     end
 
     if plot_tomo && mod(k,10)==0
@@ -98,29 +95,6 @@ for k = 0:max_iter
     end
 
     x = x + alpha*d;
-
-    if away
-        if step_type == "FW"
-            lambda = (1 - alpha) * lambda;
-    
-            [found, j] = ismember(s', V', 'rows');
-            if found
-                lambda(j) = lambda(j) + alpha;
-            else
-                V = [V s];
-                lambda = [lambda; alpha];
-            end
-    
-        else  % Away step
-            lambda = (1 + alpha) * lambda;
-            lambda(idx) = lambda(idx) - alpha;
-    
-            if lambda(idx) < eps
-                V(:,idx) = [];
-                lambda(idx) = [];
-            end
-        end
-    end
 
     % evaluate f at current iteration
     f_x = x' * Q * x + q' * x;
