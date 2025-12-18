@@ -1,25 +1,22 @@
-function generate_test_case(n, type, variant, seed)
+function generate_test_case(n, type)
 % Create and RUN a test instance for Frank-Wolfe.
 %
 % Usage:
+%   generate_test_case(n, "opt_on_vertex")
 %   generate_test_case(n, "interior")
 %   generate_test_case(n, "box_boundary")
 %   generate_test_case(n, "active_linear")
-%
-%   generate_test_case(n, "interior_ill")
-%   generate_test_case(n, "box_boundary_ill")
-%   generate_test_case(n, "active_linear_ill")
-%
+%   generate_test_case(n, "interior_zero")
 %   generate_test_case(n, "conditioning_vs_iterations")
 
-
-if nargin >= 4
-    rng(seed, 'twister');
-end
+% set seed for reproducibility 
+rng(43);
 
 fprintf("--------------------------------------------------\n");
-fprintf(" Running test (%s), n = %d, variant = %s\n", type, n, variant);
+fprintf(" Running test (%s), n = %d\n", type, n);
 fprintf("--------------------------------------------------\n");
+
+
 
 % -------------------------
 % Domain
@@ -59,7 +56,7 @@ if strcmpi(type, "conditioning_vs_iterations")
 
         q = -2*Q*x_star;
 
-        [x_FW, f_FW, f_star, gaps, primal_errors] = frank_wolfe(Q, q, x0, a, b, l, u, eps, variant);
+        [x_FW, f_FW, f_star, gaps, primal_errors] = frank_wolfe(Q, q, x0, a, b, l, u, eps);
 
         iters(i) = length(gaps);
 
@@ -95,13 +92,9 @@ end
 % Choose conditioning 
 % -------------------------
 switch lower(type)
-    case {'interior', 'box_boundary', 'active_linear'}
+    case {'interior', 'box_boundary', 'active_linear','opt_on_vertex', 'interior_zero'}
         kappa = 1e2;
         cond_label = "well-conditioned";
-
-    case {'interior_ill', 'box_boundary_ill', 'active_linear_ill'}
-        kappa = 1e6;
-        cond_label = "ill-conditioned";
 
     otherwise
         error("Test type not recognized.");
@@ -123,24 +116,43 @@ Q = 0.5 * (Q + Q');
 % -------------------------
 switch lower(type)
 
-    case {'interior', 'interior_ill'}
+    case {'interior'}
         description = sprintf("Interior optimum, (%s Q).", cond_label);
         x_star = 0.3 + 0.4*rand(n,1);
         q = -2*Q*x_star;
         b = 0.1;
 
-    case {'box_boundary', 'box_boundary_ill'}
+    case {'box_boundary'}
         description = sprintf("Optimum on box boundary (%s Q).", cond_label);
         x_star = ones(n,1);
         x_star(1) = 0.8;
         q = -2*Q*x_star;
         b = 0.1;
 
-    case {'active_linear', 'active_linear_ill'}
+    case {'active_linear'}
         description = sprintf("Optimum on active linear constraint (%s Q).", cond_label);
         x_star = rand(n,1);
         b = a' * x_star;
         q = -2*Q*x_star;
+        
+    case {'opt_on_vertex'}
+            description = sprintf("Optimum on vertex (%s Q).", cond_label);
+            x_star = u; 
+            q = -2*Q*x_star;
+            b = 0.1;
+
+    case {'interior_zero'}
+        description = sprintf("Interior optimum with PSD Q (zero eigenvalues).");
+        x_star = 0.3 + 0.4*rand(n,1);
+
+        % Some eigenvalues equal to 1e-8
+        lam(1:floor(n/4)) = 1e-8;               
+        Q = U * diag(lam) * U';
+        Q = 0.5 * (Q + Q');
+
+        q = -2*Q*x_star;
+        b = 0.1;
+
   
 end
 
@@ -157,7 +169,7 @@ eps = 1e-6;
 % -------------------------
 % Run Frank–Wolfe
 % -------------------------
-[x_FW, f_FW, f_star] = frank_wolfe(Q, q, x0, a, b, l, u, eps, variant);
+[x_FW, f_FW, f_star] = frank_wolfe(Q, q, x0, a, b, l, u, eps, x_star);
 
 % -------------------------
 % Print
@@ -172,4 +184,5 @@ fprintf("f_star      = %.6f\n", f_star);
 fprintf("--------------------------------------------------\n");
 
 end
+
 
