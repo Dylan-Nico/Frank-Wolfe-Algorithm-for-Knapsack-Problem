@@ -1,9 +1,12 @@
 n = 10
-% eps = 1e-6 - already in generate_test_case
+eps = 1e-6
 
-generate_test_case(n, "interior", "normal", 9)
-generate_test_case(n, "interior", "away", 9)
-generate_test_case(n, "box_boundary", "normal", 9)
-generate_test_case(n, "box_boundary", "away", 9)
-generate_test_case(n, "active_linear", "normal", 9)
-generate_test_case(n, "active_linear", "away", 9)
+for k = 0:9
+    seed = k;              % seed diverso a ogni run
+    rng(seed,'twister');   % riproducibilità
+
+    [Q, q, l, u, a, b, x0] = generate_variables(n, seed);
+    Q = (Q + Q')/2;
+    frank_wolfe(Q, q, x0, a, b, l, u, eps)
+    frank_wolfe_away(Q, q, x0, a, b, l, u, eps)
+end

@@ -28,8 +28,17 @@ primal_errors = [];
 Results = table([], [], [], [], [], [], 'VariableNames', {'Iter','gap','alpha','a * x','StepNorm', 'PrimalError'});
 
 
-% start from a vertex
-x = solveLP(zeros(n,1), a, b, l, u);
+% start from a vertex if not feasible
+if ~check_feasible(x, a, b, l, u)
+    disp("x0 infeasible → FW oracle using ∇f(x0)");
+
+    g0 = 2*Q*x0 + q;        % gradient at x0
+    x  = solveLP(g0, a, b, l, u);
+
+    if ~check_feasible(x, a, b, l, u)
+        error("Infeasible problem: empty feasible set");
+    end
+end
 
 % Active set of vertexes
 V = x;          

@@ -1,7 +1,19 @@
-function [Q, q, l, u, a, b, x0] = generate_variables(n)
+function [Q, q, l, u, a, b, x0] = generate_variables(n, seed)
 
- A = randn(n);
- Q = A' * A;
+rng(seed)
+
+kappa = 10;          % numero di condizionamento desiderato (≈ max eig / min eig)
+
+% autovalori ben distribuiti
+lambda_min = 1;
+lambda_max = kappa;
+D = diag(linspace(lambda_min, lambda_max, n));
+
+% matrice ortogonale casuale
+[A,~] = qr(randn(n));
+
+% matrice PSD (in realtà SPD)
+ Q = A * D * A';
  q = randn(n,1); 
  LOW  = 1;
  HIGH =  10;
@@ -22,21 +34,4 @@ function [Q, q, l, u, a, b, x0] = generate_variables(n)
  t = (b - a'*l) / (a'*(u-l));  
 t = max(0, min(1, t));          
 x0 = l + t*(u - l);             % x0 nel box, soddisfa il vincolo
- disp("n:")
- disp(n)
- disp("Q:")
- disp(Q)
- disp("q:")
- disp(q)
- disp("l:")
- disp(l)
- disp("u:")
- disp(u)
- disp("a:")
- disp(a)
- disp("b:")
- disp(b)
- disp("x0:")
- disp(x0)
-
 end
