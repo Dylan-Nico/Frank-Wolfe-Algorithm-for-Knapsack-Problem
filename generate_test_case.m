@@ -169,7 +169,8 @@ eps = 1e-6;
 % -------------------------
 % Run Frank–Wolfe
 % -------------------------
-[x_FW, f_FW, f_star] = frank_wolfe(Q, q, x0, a, b, l, u, eps, x_star);
+%[x_FW, f_FW, f_star] = frank_wolfe(Q, q, x0, a, b, l, u, eps, x_star);
+[x_FW, f_FW, f_star] = frank_wolfe_away(Q, q, x0, a, b, l, u, eps, x_star);
 
 % -------------------------
 % Print

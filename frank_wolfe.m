@@ -1,23 +1,31 @@
-function [x, fval, f_star] = frank_wolfe(Q,q,x0,a,b,l,u,eps,variant) % invariant Sum_i(a_i*x_i)>=b
+function [x, fval, f_star, gaps, primal_errors] = frank_wolfe(Q,q,x0,a,b,l,u,eps,x_star_true) % invariant Sum_i(a_i*x_i)>=b
 
-plot_tomo = false;
+% Frank Wolfe algorithm
+%
+% Input: Q n*n Positive Semidefinite matrix
+%        q n vector
+%        x0 starting point (could be feasible or not, a procedure will force it)
+%        a,b for linear constraint
+%        l,u margins of the box
+%        eps precision - 10^-6 default
+%
+% Output: x solution
+%         fval value of function in the solution point
+%         f_star true value of function given by the Oracle
+
+% Initialize variables
 x = x0;
 n = length(x0);
-max_iter = n * 2000;
+max_iter = 100000;
 iterates = x;
+gap = Inf;
 gaps = [];
 primal_errors = [];
 Results = table([], [], [], [], [], [], 'VariableNames', {'Iter','gap','alpha','a * x','StepNorm', 'PrimalError'});
-away = false;
 
-if isequal(variant, "away")
-    disp("Away STEP ACTIVE")
-    away = true;
-    V = x;        % active vertices
-    lambda = 1;
-end
 
-% check if starting point is feasible
+
+% check if starting point is feasible, if not, force it 
 if ~check_feasible(x, a, b, l, u)
     fprintf("Error: starting point no feasible, force it to be feasible\n");
     
@@ -30,105 +38,61 @@ if ~check_feasible(x, a, b, l, u)
         t = (b - a' * x) / (a' * a);
         x = x + t * a;
 
-        % 3) re-put in the box if necessary
+        % re-put in the box if necessary
         x = min(max(x, l), u);
     end
-    
+else
+    fprintf("Starting point is feasible\n");
 end
 
 % Compute true minimum with oracle (for primal error)
-[x_star, f_star] = Oracle(Q, q, a, b, l, u);
+%[x_star, f_star] = Oracle(Q, q, a, b, l, u);
 
+% Compute f_star: use true x_star if provided, otherwise call Oracle
+if nargin >= 9 && ~isempty(x_star_true)
+    f_star = x_star_true' * Q * x_star_true + q' * x_star_true;
+else
+    [~, f_star] = Oracle(Q, q, a, b, l, u);
+end
 
-for k = 0:max_iter
+k = 1;
+while(k<max_iter && gap>eps)
 
     % gradient
     g = 2*Q*x + q;
 
+    % Solve linear problem
     s = solveLP(g,a,b,l,u);
-
-    d_FW = s - x;
     
-   
+    % set direction
+    d = s - x;
     
-    gap_FW = -g' * d_FW;
-
-    if away && size(V,2) > 1
-        [~, idx] = max(V' * g);
-        v = V(:, idx);
-        d_A = x - v;
-        gap_A = -g' * d_A;
-    else
-        gap_A = -inf;
-    end
-
-    if ~away || gap_FW >= gap_A
-        d = d_FW;
-        gamma_max = 1;
-        step_type = "FW";
-        gap = gap_FW;
-    else
-        d = d_A;
-        gamma_max = lambda(idx) / (1 - lambda(idx));
-        step_type = "Away";
-        gap = gap_A;
-    end
-
-    % save gap for the plot
+   % Compute duality gap and save it for the plot
+    gap = -g' * d;
     gaps(end+1) = gap;
 
-    if(gap <= eps)
-        fprintf('Converged (gap <= eps)\n');
-        break;
-    end
 
-    % ---- Line search esatta per quadratiche usando la tomografia implicitamente ----
-    % α = argmin f(x + α d)
+    % ---- Exact line search: implicity usage of tomography (for quadratic function it's easy) ----
+    % α = argmin f(x + α d) = phi(α) 
     num = g' * d;
     denom = 2*d' * Q * d;
 
     if denom > 0
-        alpha = min(gamma_max, max(0, -num / denom));
+        alpha = min(1, max(0, -num / denom));
     else
-        alpha = gamma_max;
+        alpha = 1;
     end
 
-    if plot_tomo && mod(k,10)==0
-        plot_tomography(Q, q, x, d, alpha);
-    end
-
+    % step: update x
     x = x + alpha*d;
 
-    if away
-        if step_type == "FW"
-            lambda = (1 - alpha) * lambda;
-    
-            [found, j] = ismember(s', V', 'rows');
-            if found
-                lambda(j) = lambda(j) + alpha;
-            else
-                V = [V s];
-                lambda = [lambda; alpha];
-            end
-    
-        else  % Away step
-            lambda = (1 + alpha) * lambda;
-            lambda(idx) = lambda(idx) - alpha;
-    
-            if lambda(idx) < eps
-                V(:,idx) = [];
-                lambda(idx) = [];
-            end
-        end
-    end
-
-    % evaluate f at current iteration
+    % evaluate f at current iteration and compute primal error
     f_x = x' * Q * x + q' * x;
-    
-    primal_error = abs(f_x - f_star) / max(1, abs(f_x));
+    primal_error = abs(f_x - f_star) / max(1, abs(f_star));
+
     primal_errors(end+1) = primal_error;
 
-    % Valori salvati
+    % Save values
     iterNum   = k;
     gap_k     = gap;
     alpha_k   = alpha;
@@ -136,35 +100,42 @@ for k = 0:max_iter
     stepnorm  = norm(alpha*d);
     pe_k      = primal_error;
 
-    % Aggiungi alla tabella
+    % Add values to table
     newRow = {iterNum, gap_k, alpha_k, aTx_k, stepnorm, pe_k};
     Results = [Results; newRow];
-
-    % === WARNING VICINO AL BOUND ===
-    tolBound = 1e-8;
-    warning_bound(tolBound,x,l,u) ;
-
+    
+    % update next iterate
     iterates(:, end+1) = x;
+    k = k+1;
 
 end
 
+% save gaps of last iteration
+gaps(end+1) = gap;
+primal_errors(end+1) = primal_error;
+
+% evaluate f in last iteration
 fval = x' * Q * x + q' * x;
 
-% ---- Plot 2D delle iterazioni se n = 2 ----
+% ---- Plot iterates and level sets is n=2 ----
 if n == 2
     FW_plot2D(Q, q, a, b, l, u, iterates);
 end
 
-% stampo la tabella
+% print table
+format short e
 disp(Results);
+format short
 
 % check x ammissible
-check_feasible(x, a, b, l, u);
+if(check_feasible(x, a, b, l, u))
+    fprintf("Solution point is feasible\n");
+else
+    fprintf("Solution point is not feasible\n");
+end
 
-% plot gap
-plot_gap(gaps, primal_errors);
 
-disp(n)
-disp(k)
+% plot gaps
+plot_gaps(gaps, primal_errors);
 
 end
