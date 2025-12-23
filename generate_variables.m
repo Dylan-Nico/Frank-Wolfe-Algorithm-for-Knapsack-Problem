@@ -14,6 +14,7 @@ D = diag(linspace(lambda_min, lambda_max, n));
 
 % matrice PSD (in realtà SPD)
  Q = A * D * A';
+ Q = (Q + Q')/2;
  q = randn(n,1); 
  LOW  = 1;
  HIGH =  10;
