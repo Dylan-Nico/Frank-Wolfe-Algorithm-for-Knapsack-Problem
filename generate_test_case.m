@@ -166,11 +166,20 @@ x0 = rand(n,1);
 % -------------------------
 eps = 1e-6;
 
+
+% Run Frank–Wolfe (standard)
 % -------------------------
-% Run Frank–Wolfe
+[x_FW, f_FW, f_star, gaps_FW, pe_FW] = frank_wolfe(Q, q, x0, a, b, l, u, eps, x_star);
+
 % -------------------------
-%[x_FW, f_FW, f_star] = frank_wolfe(Q, q, x0, a, b, l, u, eps, x_star);
-[x_FW, f_FW, f_star] = frank_wolfe_away(Q, q, x0, a, b, l, u, eps, x_star);
+% Run Frank–Wolfe (away)
+% -------------------------
+[x_AW, f_AW, f_star2, gaps_AW, pe_AW] = frank_wolfe_away(Q, q, x0, a, b, l, u, eps, x_star);
+
+
+% Comparison plot
+comparison_plot(gaps_FW, gaps_AW, pe_FW, pe_AW, type, n);
+
 
 % -------------------------
 % Print
@@ -181,6 +190,7 @@ fprintf("Q conditioning: k ≈ %.2e (λ_min=%.2e, λ_max=%.2e)\n", ...
 
 fprintf("Description: %s\n", description);
 fprintf("f(x_FW)     = %.6f\n", f_FW);
+fprintf("f(x_AW)     = %.6f\n", f_AW);
 fprintf("f_star      = %.6f\n", f_star);
 fprintf("--------------------------------------------------\n");
 

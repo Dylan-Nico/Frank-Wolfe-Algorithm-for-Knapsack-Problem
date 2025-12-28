@@ -28,21 +28,28 @@ primal_errors = [];
 Results = table([], [], [], [], [], [], 'VariableNames', {'Iter','gap','alpha','a * x','StepNorm', 'PrimalError'});
 
 
-% start from a vertex if not feasible
+% check if starting point is feasible, if not, force it 
 if ~check_feasible(x, a, b, l, u)
-    disp("x0 infeasible → FW oracle using ∇f(x0)");
+    fprintf("Error: starting point no feasible, force it to be feasible\n");
+    
+    % put in the center of the box
+    x = (l + u) / 2;
 
-    g0 = 2*Q*x0 + q;        % gradient at x0
-    x  = solveLP(g0, a, b, l, u);
+    % if second constraint not verified
+    if a' * x < b
+        % Compute difference and move
+        t = (b - a' * x) / (a' * a);
+        x = x + t * a;
 
-    if ~check_feasible(x, a, b, l, u)
-        error("Infeasible problem: empty feasible set");
+        % re-put in the box if necessary
+        x = min(max(x, l), u);
     end
+else
+    fprintf("Starting point is feasible\n");
 end
 
-% Active set of vertexes
-V = x;          
-lambda = 1;     
+% Compute decomposition of starting point
+[V, lambda] = project_to_feasible_vertex(x, a, b, l, u);
 
 % Compute f_star: use true x_star if provided, otherwise call Oracle
 if nargin >= 9 && ~isempty(x_star_true)
@@ -83,8 +90,11 @@ while (k < max_iter && gap > eps)
         step_type = "AWAY";
     end
 
+    % for the plot: use actual iteration gap
+    gap_best = max(gap_fw,gap_away);
+
     % use still FW gap for certificare (bounded by theory)
-    gap = gap_fw;
+    gap = gap_best;
     gaps(end+1) = gap;
 
     % ---- Exact line search: implicity usage of tomography (for quadratic function it's easy) ----
@@ -187,3 +197,4 @@ end
 plot_gaps(gaps, primal_errors);
 
 end
+
