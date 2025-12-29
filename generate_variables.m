@@ -1,38 +1,35 @@
-function [Q, q, l, u, a, b, x0] = generate_variables(n, seed)
+function [Q, q, l, u, a, b, x0, x_star] = generate_variables(n, seed, type)
 
-rng(seed)
-
-kappa = 10;          % numero di condizionamento desiderato (≈ max eig / min eig)
-
-% autovalori ben distribuiti
-lambda_min = 1;
-lambda_max = kappa;
-D = diag(linspace(lambda_min, lambda_max, n));
-
-% matrice ortogonale casuale
-[A,~] = qr(randn(n));
-
-% matrice PSD (in realtà SPD)
- Q = A * D * A';
- Q = (Q + Q')/2;
- q = randn(n,1); 
- LOW  = 1;
- HIGH =  10;
-
-% genero i bound inferiori
- l = LOW + (HIGH-LOW) * rand(n,1);
-
-% genero i bound superiori, sempre > l
- u = l + 0.5 + rand(n,1); 
- a = rand(n,1); 
-
- % calcolo range valido
- b_min = a' * l;
- b_max = a' * u;
-
- % scegli b in modo "random" dentro l'intervallo possibile
- b = b_min + (b_max - b_min) * rand();
- t = (b - a'*l) / (a'*(u-l));  
-t = max(0, min(1, t));          
-x0 = l + t*(u - l);             % x0 nel box, soddisfa il vincolo
+    rng(seed)
+    
+    % -------------------------
+    % Domain
+    % -------------------------
+    l = zeros(n,1);
+    u = ones(n,1);
+    a = rand(n,1) + 0.1;
+    
+    
+    % -------------------------
+    % Build SPD Q with controlled spectrum
+    % -------------------------
+    kappa = 1e2;
+    lam_min = 1;
+    lam_max = kappa * lam_min;
+    
+    lam = logspace(log10(lam_min), log10(lam_max), n)';
+    [U,~] = qr(randn(n),0);
+    Q = U * diag(lam) * U';
+    Q = 0.5 * (Q + Q');
+    if isequal(type, "Interior")
+        x_star = 0.3 + 0.4*rand(n,1);
+    else 
+        if isequal(type, "Boundary")
+            x_star = ones(n,1);
+            x_star(1) = 0.8;
+        end
+    end
+    q = -2*Q*x_star;
+    b = 0.1;
+    x0 = rand(n,1);
 end
