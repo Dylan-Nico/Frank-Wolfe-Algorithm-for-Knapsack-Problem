@@ -6,7 +6,9 @@ function [x, fval, f_star, gaps, primal_errors] = frank_wolfe_away(Q,q,x0,a,b,l,
 %
 % Input: Q n*n Positive Semidefinite matrix
 %        q n vector
-%        x0 starting point (could be feasible or not, a procedure will force it)
+%        x0 starting point (could be feasible or not, a procedure will
+%        force it) --> thi version starts with closest point x0 feasible
+%        for away step.
 %        a,b for linear constraint
 %        l,u margins of the box
 %        eps precision - 10^-6 default
@@ -48,8 +50,35 @@ else
     fprintf("Starting point is feasible\n");
 end
 
-% Compute decomposition of starting point
-[V, lambda] = project_to_feasible_vertex(x, a, b, l, u);
+% initialize AFW with 2 feasible vertixes (no full decomposition)
+
+% gradient in x0
+g0 = 2*Q*x + q;
+
+% pick two feasible vertixes
+v1 = solveLP(g0,  a, b, l, u);   
+v2 = solveLP(-g0, a, b, l, u);   
+
+% build  2-vertex active set
+V = [v1, v2];
+
+% if v1 == v2, start at that single vertex
+diffv = v1 - v2;
+den = diffv' * diffv;
+
+if den <= 1e-30
+    lambda = 1;
+    V = v1;
+    x = v1;
+else
+    % project x in the segment [v2, v1] to get weights
+    alpha = ((x - v2)' * diffv) / den;
+    alpha = min(1, max(0, alpha));   
+
+    lambda = [alpha; 1 - alpha];
+    x = V * lambda;                  % decomposition
+end
+
 
 % Compute f_star: use true x_star if provided, otherwise call Oracle
 if nargin >= 9 && ~isempty(x_star_true)
