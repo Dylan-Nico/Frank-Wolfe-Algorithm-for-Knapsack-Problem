@@ -1,6 +1,7 @@
 function [x, fval, f_star, gaps, primal_errors] = frank_wolfe_away(Q,q,x0,a,b,l,u,eps,x_star_true)
 %% Invariant:
-% x = V*lambda, lambda >= 0 , sum_i(lambda_i)=1
+% 1) keep the starting point x_0 feasible
+% 2) the starting point must be a convex comb of vertex: x_0 = V*lambda, lambda >= 0 , sum_i(lambda_i)=1
 %
 % Away-Step Frank-Wolfe algorithm 
 %
@@ -119,7 +120,7 @@ while (k < max_iter && gap > eps)
         step_type = "AWAY";
     end
 
-    % for the plot: use actual iteration gap
+    % use actual iteration gap
     gap_best = max(gap_fw,gap_away);
 
     % use still FW gap for certificare (bounded by theory)

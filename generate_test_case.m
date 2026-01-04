@@ -92,7 +92,7 @@ end
 % Choose conditioning 
 % -------------------------
 switch lower(type)
-    case {'interior', 'box_boundary', 'active_linear','opt_on_vertex', 'interior_zero'}
+    case {'interior', 'box_boundary', 'active_linear','opt_on_vertex', 'interior_zero','beck_shtern_psd'}
         kappa = 1e2;
         cond_label = "well-conditioned";
 
@@ -153,6 +153,28 @@ switch lower(type)
         q = -2*Q*x_star;
         b = 0.1;
 
+    case {'beck_shtern_psd'}
+        description = "Beck–Shtern test case";
+
+        % choose rank deficiency for E
+        m = max(2, floor(0.4*n));   
+        E = randn(m,n);
+
+        % normalize
+        E = E / norm(E,2);       
+
+        Q = E' * E;                
+        Q = 0.5*(Q+Q');             % Q symmetric
+
+        % optimum on the box boundary (it's feasible)
+        x_star = ones(n,1);
+        x_star(1) = 0.8;
+
+        % make constraint inactive
+        b = 0.1;
+
+        c = E * x_star;
+        q = -2 * (E' * c);
   
 end
 
