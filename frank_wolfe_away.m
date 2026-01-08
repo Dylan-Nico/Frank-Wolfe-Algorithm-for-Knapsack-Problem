@@ -30,6 +30,10 @@ gaps = [];
 primal_errors = [];
 Results = table([], [], [], [], [], [], 'VariableNames', {'Iter','gap','alpha','a * x','StepNorm', 'PrimalError'});
 
+% box check
+if any(l > u)
+    error('Invalid box: must have l(i) <= u(i) for all i');
+end
 
 % check if starting point is feasible, if not, force it 
 if ~check_feasible(x, a, b, l, u)
@@ -51,7 +55,31 @@ else
     fprintf("Starting point is feasible\n");
 end
 
-% initialize AFW with 2 feasible vertixes (no full decomposition)
+% check linear constraint
+x_max = l;
+x_max(a >= 0) = u(a >= 0);   
+if a' * x_max < b
+    error('Linear constraint infeasible on the box: max a''x < b');
+end
+
+% check eps
+if eps <= 0
+    error('eps must be > 0');
+end
+
+% Q is symmetric 
+if norm(Q - Q','fro') > 1e-12
+    error('Q must be symmetric');
+end
+
+% check if Q is SPSD 
+e = eig(Q);
+if min(e) < -1e-10
+    error('Q must be positive semidefinite ');
+end
+
+
+% Initialize AFW with 2 feasible vertixes (no full decomposition)
 
 % gradient in x0
 g0 = 2*Q*x + q;
